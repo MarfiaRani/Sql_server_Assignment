@@ -1,0 +1,157 @@
+CREATE DATABASE SQL_SERVER_ASSIGNMENT;
+USE SQL_SERVER_ASSIGNMENT;
+-- Create Customers table
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY IDENTITY(1,1),
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Email VARCHAR(100),
+    PhoneNumber VARCHAR(20)
+);
+
+-- Create Orders table
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY IDENTITY(101,1),
+    CustomerID INT,
+    OrderDate DATE,
+    TotalAmount DECIMAL(10, 2),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+
+-- Create OrderDetails table
+CREATE TABLE OrderDetails (
+    OrderDetailID INT PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT,
+    UnitPrice DECIMAL(10, 2),
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ProductID)
+);
+INSERT INTO OrderDetails (OrderDetailID, OrderID, ProductID, Quantity, UnitPrice)
+VALUES(
+01,101,3,8, 22.00);
+
+SELECT * FROM OrderDetails;
+-- Create Products table
+CREATE TABLE Products (
+    ProductID INT PRIMARY KEY, 
+    ProductName VARCHAR(100),
+    UnitPrice DECIMAL(10, 2),
+    InStockQuantity INT
+);
+
+-- Insert sample data into Customers table
+INSERT INTO Customers (FirstName, LastName, Email, PhoneNumber)
+VALUES
+    ('Ali', 'Ahmed', 'ali.ahmed@example.com', '111-222-3333'),
+    ('Zahra', 'Siddiqui', 'zahra.siddiqui@example.com', '444-555-6666'),
+    ('Omar', 'Khan', 'omar.khan@example.com', '777-888-9999'),
+    ('Sana', 'Malik', 'sana.malik@example.com', '101-202-3030'),
+    ('Yusuf', 'Hussain', 'yusuf.hussain@example.com', '404-505-6060'),
+    ('Amina', 'Rahman', 'amina.rahman@example.com', '707-808-9090'),
+    ('Bilal', 'Farooq', 'bilal.farooq@example.com', '212-313-4141'),
+    ('Nadia', 'Saleem', 'nadia.saleem@example.com', '515-616-7171');
+
+	SELECT * FROM Customers;
+-- Insert sample data into Products table
+INSERT INTO Products (ProductID, ProductName, UnitPrice, InStockQuantity)
+VALUES
+    (1, 'Product A', 10.99, 100),
+    (2, 'Product B', 20.50, 50),
+    (3, 'Product C', 15.75, 75);
+
+	SELECT * FROM Products;
+-- Insert sample data into Orders table
+
+    INSERT INTO Orders (CustomerID, OrderDate, TotalAmount)
+VALUES
+    (1, '2024-03-29', 50.45),
+    (2, '2024-03-30', 75.20),
+    (1, '2024-04-01', 30.80),
+    (2, '2024-04-02', 45.60),
+    (1, '2024-04-03', 60.75),
+    (2, '2024-04-04', 25.90),
+    (1, '2024-04-05', 80.35),
+    (2, '2024-04-06', 55.10),
+    (1, '2024-04-07', 40.20),
+    (2, '2024-04-08', 65.50);
+
+
+
+	SELECT * FROM Orders;
+
+-- Insert sample data into OrderDetails table
+
+INSERT INTO OrderDetails (OrderDetailID, OrderID, ProductID, Quantity, UnitPrice)
+VALUES
+(6, 101, 3, 8, 22.00),
+(2, 102, 2, 5, 18.50),
+(3, 103, 1, 10, 12.75),
+(4, 106, 3, 3, 30.00);
+
+SELECT * FROM OrderDetails;
+
+--------TASKS------
+----TASK NO:1
+--1) Create a new user named Order_Clerk with permission to insert new orders 
+--and update order details in the Orders and OrderDetails tables.
+
+
+CREATE LOGIN  Order_Clerk WITH PASSWORD = 'Abc123';
+CREATE USER Order_Clerk FOR LOGIN Order_Clerk;
+
+ GRANT INSERT ON dbo.Orders TO [Order_Clerk];
+
+ GRANT UPDATE ON dbo.OrderDetails TO [Order_Clerk];
+
+
+ ----TASK NO:2
+--2) Create a trigger named Update_Stock_Audit that logs any updates made to the InStockQuantity column
+--of the Products table into a Stock_Update_Audit table.
+CREATE TABLE Stock_Update_Audit (
+    AuditID INT IDENTITY(1,1) PRIMARY KEY,
+    ProductID INT,
+    OldQuantity INT,
+    NewQuantity INT,
+    UpdateDate DATETIME
+);
+ALTER TRIGGER Update_Stoke_Audit 
+ON Products
+After INSERT, UPDATE, DELETE
+AS
+BEGIN
+     Declare @AuditID INT
+     Declare @ProductID INT
+     DECLARE @OldQuantity INT 
+     DECLARE @NewQuantity INT
+	  DECLARE @UpdateDate DateTime
+
+	     SELECT @ProductID = ProductID from inserted
+          SELECT  @OldQuantity = InStockQuantity from Products
+           SELECT     @NewQuantity = InStockQuantity from inserted
+         SELECT   @UpdateDate = GETDATE() from inserted
+ 
+     INSERT INTO Stock_Update_Audit (ProductID, OldQuantity, NewQuantity, UpdateDate)
+        VALUES (@ProductID, @OldQuantity, @NewQuantity, @UpdateDate)
+    END;
+
+
+	INSERT INTO Products (ProductID, ProductName, UnitPrice, InStockQuantity)
+VALUES
+    (4, 'Product A', 10.99, 300);
+
+UPDATE Products SET InStockQuantity = 150
+WHERE ProductID = 1;
+
+UPDATE Products
+SET UnitPrice= 1500.00
+WHERE ProductID = 1;
+Select * from Products;
+
+Delete from Products where ProductID='4';
+
+
+Select * from Stock_Update_Audit;
+
+
