@@ -1,0 +1,213 @@
+CREATE DATABASE SQL_SERVER_ASSIGNMENT;
+
+USE SQL_SERVER_ASSIGNMENT;
+-- Create Customers table
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY IDENTITY(1,1),
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Email VARCHAR(100),
+    PhoneNumber VARCHAR(20)
+);
+
+-- Create Orders table
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY IDENTITY(101,1),
+    CustomerID INT,
+    OrderDate DATE,
+    TotalAmount DECIMAL(10, 2),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+
+-- Create OrderDetails table
+CREATE TABLE OrderDetails (
+    OrderDetailID INT PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT,
+    UnitPrice DECIMAL(10, 2),
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ProductID)
+);
+INSERT INTO OrderDetails (OrderDetailID, OrderID, ProductID, Quantity, UnitPrice)
+VALUES(
+01,101,3,8, 22.00);
+
+SELECT * FROM OrderDetails;
+-- Create Products table
+CREATE TABLE Products (
+    ProductID INT PRIMARY KEY, 
+    ProductName VARCHAR(100),
+    UnitPrice DECIMAL(10, 2),
+    InStockQuantity INT
+);
+
+-- Insert sample data into Customers table
+INSERT INTO Customers (FirstName, LastName, Email, PhoneNumber)
+VALUES
+    ('Ali', 'Ahmed', 'ali.ahmed@example.com', '111-222-3333'),
+    ('Zahra', 'Siddiqui', 'zahra.siddiqui@example.com', '444-555-6666'),
+    ('Omar', 'Khan', 'omar.khan@example.com', '777-888-9999'),
+    ('Sana', 'Malik', 'sana.malik@example.com', '101-202-3030'),
+    ('Yusuf', 'Hussain', 'yusuf.hussain@example.com', '404-505-6060'),
+    ('Amina', 'Rahman', 'amina.rahman@example.com', '707-808-9090'),
+    ('Bilal', 'Farooq', 'bilal.farooq@example.com', '212-313-4141'),
+    ('Nadia', 'Saleem', 'nadia.saleem@example.com', '515-616-7171');
+
+	SELECT * FROM Customers;
+-- Insert sample data into Products table
+INSERT INTO Products (ProductID, ProductName, UnitPrice, InStockQuantity)
+VALUES
+    (1, 'Product A', 10.99, 100),
+    (2, 'Product B', 20.50, 50),
+    (3, 'Product C', 15.75, 75);
+
+	SELECT * FROM Products;
+-- Insert sample data into Orders table
+
+    INSERT INTO Orders (CustomerID, OrderDate, TotalAmount)
+VALUES
+    (1, '2024-03-29', 50.45),
+    (2, '2024-03-30', 75.20),
+    (1, '2024-04-01', 30.80),
+    (2, '2024-04-02', 45.60),
+    (1, '2024-04-03', 60.75),
+    (2, '2024-04-04', 25.90),
+    (1, '2024-04-05', 80.35),
+    (2, '2024-04-06', 55.10),
+    (1, '2024-04-07', 40.20),
+    (2, '2024-04-08', 65.50);
+	
+
+	SELECT * FROM Orders;
+
+-- Insert sample data into OrderDetails table
+
+INSERT INTO OrderDetails (OrderDetailID, OrderID, ProductID, Quantity, UnitPrice)
+VALUES
+(6, 101, 3, 8, 22.00),
+(2, 102, 2, 5, 18.50),
+(3, 103, 1, 10, 12.75),
+(4, 106, 3, 3, 30.00);
+
+SELECT * FROM OrderDetails;
+
+--------TASKS------
+----TASK NO:1
+--1) Create a new user named Order_Clerk with permission to insert new orders 
+--and update order details in the Orders and OrderDetails tables.
+
+
+CREATE LOGIN  Order_Clerk WITH PASSWORD = 'Abc123';
+CREATE USER Order_Clerk FOR LOGIN Order_Clerk;
+
+ GRANT INSERT ON dbo.Orders TO [Order_Clerk];
+
+ GRANT UPDATE ON dbo.OrderDetails TO [Order_Clerk];
+
+
+ ----TASK NO:2
+--2) Create a trigger named Update_Stock_Audit that logs any updates made to the InStockQuantity column
+--of the Products table into a Stock_Update_Audit table.
+CREATE TABLE Stock_Update_Audit (
+    AuditID INT IDENTITY(1,1) PRIMARY KEY,
+    ProductID INT,
+    OldQuantity INT,
+    NewQuantity INT,
+    UpdateDate DATETIME
+);
+ALTER TRIGGER Update_Stoke_Audit 
+ON Products
+After INSERT, UPDATE, DELETE
+AS
+BEGIN
+     Declare @AuditID INT
+     Declare @ProductID INT
+     DECLARE @OldQuantity INT 
+     DECLARE @NewQuantity INT
+	  DECLARE @UpdateDate DateTime
+
+	     SELECT @ProductID = ProductID from inserted
+          SELECT  @OldQuantity = InStockQuantity from Products
+           SELECT     @NewQuantity = InStockQuantity from inserted
+         SELECT   @UpdateDate = GETDATE() from inserted
+ 
+     INSERT INTO Stock_Update_Audit (ProductID, OldQuantity, NewQuantity, UpdateDate)
+        VALUES (@ProductID, @OldQuantity, @NewQuantity, @UpdateDate)
+    END;
+
+
+	INSERT INTO Products (ProductID, ProductName, UnitPrice, InStockQuantity)
+VALUES
+    (4, 'Product A', 10.99, 300);
+
+UPDATE Products SET InStockQuantity = 150
+WHERE ProductID = 1;
+
+UPDATE Products
+SET UnitPrice= 1500.00
+WHERE ProductID = 1;
+Select * from Products;
+
+Delete from Products where ProductID='4';
+
+
+Select * from Stock_Update_Audit;
+
+--TASK NO:3---
+
+--Write a SQL query that retrieves the FirstName, LastName, OrderDate, and TotalAmount of orders along
+--with the customer details by joining the Customers and Orders tables.
+
+SELECT c.FirstName,c.LastName, o.OrderDate,o.TotalAmount from Customers as c INNER JOIN Orders as o ON c.CustomerID=o.CustomerID;
+
+-- with a parameters
+SELECT c.FirstName,c.LastName, o.OrderDate,o.TotalAmount from Customers as c INNER JOIN Orders as o ON c.CustomerID=o.CustomerID
+where TotalAmount>50;
+
+--TASK NO: 4--
+--Write a SQL query that retrieves the ProductName, Quantity, and TotalPrice of products ordered 
+--in orders with a total amount greater than the average total amount of all orders.
+
+SELECT p.ProductName, o.Quantity, b.TotalAmount FROM Products AS p 
+INNER JOIN OrderDetails AS o ON p.ProductID = o.ProductID
+INNER JOIN Orders AS b ON o.OrderID = b.OrderID 
+WHERE b.TotalAmount > (SELECT AVG(TotalAmount) FROM Orders);
+
+--TASK NO: 5--
+--Create a stored procedure named GetOrdersByCustomer that takes a CustomerID as input and 
+--returns all orders placed by that customer along with their details.
+
+Drop procedure GetOrdersByCustomer; 
+
+CREATE PROCEDURE GetOrdersByCustomer @CustomerID INT
+AS
+SELECT  o.CustomerID,o.OrderID,q.ProductID, q.UnitPrice, q.Quantity, o.OrderDate  from Orders as o inner join OrderDetails as q on o.OrderID=q.OrderID
+WHERE o.CustomerID = @CustomerID;
+EXEC GetOrdersByCustomer @CustomerID=2;
+EXEC GetOrdersByCustomer @CustomerID=1;
+
+----TASK NO: 6--
+--Write a SQL query to create a view named OrderSummary that displays 
+--the OrderID, OrderDate, CustomerID, and TotalAmount from the Orders table.
+CREATE View [OrderSummary]AS
+SELECT OrderID, OrderDate,CustomerID,TotalAmount from Orders;
+Select * from OrderSummary;
+
+-- i created a view which can seen as the arrangement is also changed because of view. insead we can call other col 
+/*CREATE View [OrderSummary2] AS
+SELECT OrderID,CustomerID,TotalAmount from Orders;
+Select * from OrderSummary2;*/
+
+----TASK NO: 7--
+-- Create a view named ProductInventory that shows the ProductName and InStockQuantity from the Products table.
+
+CREATE View [ProductInventory]AS
+SELECT ProductName,InStockQuantity from Products;
+Select * from [ProductInventory];
+
+----TASK NO: 8--
+--Write a SQL query that joins the OrderSummary view with the Customers table to retrieve the customer's 
+--first name and last name along with their orderdetails.
+SELECT c.FirstName, c.LastName, o.* from Customers as c inner join OrderSummary as o on c.CustomerID=o.CustomerID ;
+
