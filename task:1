@@ -1,0 +1,8 @@
+----TASK NO:1
+--1) Create a new user named Order_Clerk with permission to insert new orders 
+--and update order details in the Orders and OrderDetails tables.
+
+
+CREATE LOGIN  Order_Clerk WITH PASSWORD = 'Abc123';
+CREATE USER Order_Clerk FOR LOGIN Order_Clerk;
+SELECT * from sys.sql_logins;
